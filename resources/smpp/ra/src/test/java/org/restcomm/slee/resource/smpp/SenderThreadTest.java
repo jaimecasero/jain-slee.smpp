@@ -168,7 +168,9 @@ public class SenderThreadTest {
             public Object answer(InvocationOnMock invocation) {
                 try {
                     //simulate blocking network activity                    
-                    new ServerSocket(0).accept();
+                    ServerSocketChannel sockChannel = ServerSocketChannel.open();
+                    sockChannel.configureBlocking(true);
+                    sockChannel.accept();
                 } catch (IOException ex) {
                     Logger.getLogger(SenderThreadTest.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -220,8 +222,10 @@ public class SenderThreadTest {
         Mockito.doAnswer(new Answer() {
             public Object answer(InvocationOnMock invocation) {
                 try {
-                    //simulate blocking network activity
-                    new ServerSocket(0).accept();
+                    //simulate blocking network activity                    
+                    ServerSocketChannel sockChannel = ServerSocketChannel.open();
+                    sockChannel.configureBlocking(true);
+                    sockChannel.accept();
                 } catch (IOException ex) {
                     Logger.getLogger(SenderThreadTest.class.getName()).log(Level.SEVERE, null, ex);
                 }
