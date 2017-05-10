@@ -10,6 +10,10 @@ import java.io.IOException;
 import java.nio.channels.ServerSocketChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.slee.facilities.Tracer;
@@ -148,7 +152,7 @@ public class SenderThreadTest {
     }
 
     @Test
-    public void deactivateWhileSendingReq() throws Exception {
+    public void deactivateWhileWindowBlocked() throws Exception {
         final long reqTimeout = 1000;
 
         pool = Executors.newFixedThreadPool(NUM_THREADS);
@@ -164,14 +168,15 @@ public class SenderThreadTest {
         final Esme esme = mock(Esme.class);
         when(esme.getSmppSession()).thenReturn(smppSession);
         //return null, the senderthread is not using the returned window anyway
+        //simulate some thread blocking condition                
+        final ReentrantLock lock = new ReentrantLock();
+        //force the senderthread to get blocked
+        lock.lock();
         when(smppSession.sendRequestPdu(any(PduRequest.class), eq(reqTimeout), eq(false))).thenAnswer(new Answer() {
             public Object answer(InvocationOnMock invocation) {
                 try {
-                    //simulate blocking network activity                    
-                    ServerSocketChannel sockChannel = ServerSocketChannel.open();
-                    sockChannel.configureBlocking(true);
-                    sockChannel.accept();
-                } catch (IOException ex) {
+                    lock.lockInterruptibly();
+                } catch (Exception ex) {
                     Logger.getLogger(SenderThreadTest.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 return null;
@@ -203,7 +208,7 @@ public class SenderThreadTest {
     }
 
     @Test
-    public void deactivateWhileSendingRes() throws Exception {
+    public void deactivateWhileNetworkBlocked() throws Exception {
         final long reqTimeout = 1000;
 
         pool = Executors.newFixedThreadPool(NUM_THREADS);
